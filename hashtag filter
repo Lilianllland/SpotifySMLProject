@@ -1,0 +1,60 @@
+import numpy as np
+import pandas as pd
+
+# import data
+df = pd.read_csv(r'/content/Spotify_Data.csv', engine='python', error_bad_lines=False)
+df.info()
+
+df['hashtag'].head()
+hashtag_frequency = df.groupby(df['hashtag']).size().reset_index()
+hashtag_frequency.columns = ['hashtag', 'count']
+hashtag_frequency = hashtag_frequency.sort_values('count', ascending=False)
+print(hashtag_frequency)
+
+# Split the values in the column by commas
+df2 = df
+df2['hashtag_unique'] = df['hashtag'].str.split(',')
+df2['hashtag_unique'].head()
+
+# Explode the list of values into separate rows
+df2 = df2.explode('hashtag_unique')
+df2.head(7)
+
+hashtag_frequency_test = df2.groupby(df2['hashtag_unique']).size()
+print(hashtag_frequency_test)
+
+hashtag_frequency2 = df2.groupby(df2['hashtag_unique']).size().reset_index()
+hashtag_frequency2.columns = ['hashtag_unique', 'count']
+hashtag_frequency2 = hashtag_frequency2.sort_values('count', ascending=False)
+print(hashtag_frequency2)
+
+# to filter spotifywrapped we will use Boolean Operators for the following hashtags SpotifyWrapped, spotifywrapped2022, SPOTIFYWRAPPED, spotifywrapped, SpotifyWrapped2022, spotifywrapped2021
+count_spotifywrapped = df2['hashtag_unique'].value_counts()['SpotifyWrapped']
+print(count_spotifywrapped)
+
+count_spotifywrapped2022 = df2['hashtag_unique'].value_counts()['spotifywrapped2022']
+print(count_spotifywrapped2022)
+
+# We had some that were the same but because of capslock came out seperate so we can use pandas str.lower to make them all small sentence case.
+df2['hashtag_unique2'] = df2['hashtag_unique'].str.lower()
+df2['hashtag_unique2']
+
+# repeat counts again
+count_spotifywrapped_clean = df2['hashtag_unique2'].value_counts()['spotifywrapped']
+print(count_spotifywrapped_clean)
+
+# print out a table
+hashtag_frequency2 = df2.groupby(df2['hashtag_unique2']).size().reset_index()
+hashtag_frequency2.columns = ['hashtag_unique2', 'count']
+hashtag_frequency2 = hashtag_frequency2.sort_values('count', ascending=False)
+hashtag_frequency2.to_csv('hashtag_frequency2.csv')
+print(hashtag_frequency2)
+
+#Daily frequencies of hashtags
+daily_ht_frequency = df2.groupby('date')['hashtag_unique2'].count().reset_index() #dont forget to reset index
+daily_ht_frequency.columns = ['date', 'hashtag_count'] #rename columns
+print(daily_ht_frequency)
+
+# visualize it with bar chart
+daily_ht_frequency.plot.bar(x = 'date', y='hashtag_count', figsize=[12,12])
+
