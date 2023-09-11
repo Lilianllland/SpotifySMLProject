@@ -1,0 +1,135 @@
+# use NLTK Vader
+  # Vader is specifically attuned to sentiments expressed in social media, and works well on texts from other domains. 
+  # Vader is sensitive to both polarity (positive/negative) and intensity (strength) of emotion.
+  # It puts a lot of effort into identifying the sentiments of content that typically appear on social media, such as emojis, repetitive words, and punctuations (exclamation marks, for example).
+
+nltk.download('vader_lexicon')
+
+# Create a VaderSentiment object.
+analyzer = SentimentIntensityAnalyzer()
+sentiments = [analyzer.polarity_scores(sentence) for sentence in data]
+
+# use clean_data to run the sentiment analysis
+df['compound'] = [analyzer.polarity_scores(x)['compound'] for x in df['clean_text']]
+df['neg'] = [analyzer.polarity_scores(x)['neg'] for x in df['clean_text']]
+df['neu'] = [analyzer.polarity_scores(x)['neu'] for x in df['clean_text']]
+df['pos'] = [analyzer.polarity_scores(x)['pos'] for x in df['clean_text']]
+df.head()
+
+# get count, mean, std, min, max, etc of the sentiment score
+df['compound'].describe()
+max_sentiment = df['compound'].max()
+min_sentiment = df['compound'].min()
+print('Maximum sentiment compund score is:')
+print(max_sentiment)
+
+print('Minimum sentiment compound score is:')
+print(min_sentiment)
+
+  # use Boolean operators to get the rows with highest and lowest sentiment
+  df.loc[df['compound']== max_sentiment]
+
+  # try the ten minimum sentiment, and ten maximum sentiment tweets.
+  # for this we will use .nsmallest() and .nlargest()
+  lowest_sentiment_rows = df.nsmallest(10, 'compound')
+  highest_sentiment_rows = df.nlargest(10, 'compound')
+  print(lowest_sentiment_rows['clean_text'])
+
+# create a histogram of the sentiment scores to define the overall distribution
+df["compound"].hist(bins=5, grid=False)
+
+# create a scatter plot to see what the sentiment over time looks like
+df.plot.scatter(x="date", y="compound", color = "purple", grid = True, figsize=[10,10])
+
+# use groupby() and mean to get the average sentiment for each day and see how it looks like.
+daily_sentiment= df.groupby(df['date'])['compound'].mean().reset_index() # don't forget to reset the index
+daily_sentiment.columns = ['date', 'average_compound']
+daily_sentiment['date'] = pd.to_datetime(daily_sentiment['date']).dt.date
+print(daily_sentiment)
+
+# do a bar chart
+daily_sentiment.plot.bar(x="date", y="average_compound", grid = False, figsize=[10,10])
+# you can then find the highest and lowest sentiment score on the specific date
+
+# then use loc to locate those specific dates
+low_sentiment_aver = df.loc[df['date']== '2022-12-06', ['text']]
+low_sentiment_aver
+
+# identify the sentiment range
+# Create an empty list to store the sentiment labels
+sentiment_labels = []
+# Iterate over the 'compound' column and assign sentiment labels using a for loop
+for compound_score in df['compound']:
+    if compound_score < 0:
+        sentiment_labels.append('Negative')
+    elif compound_score > 0:
+        sentiment_labels.append('Positive')
+    else:
+        sentiment_labels.append('Neutral')
+# Assign the sentiment labels to the 'sentiment_label' column in the dataframe
+df['sentiment_label'] = sentiment_labels
+df['sentiment_label'].head()
+
+# then do a pie chart to show the overall distirbution of negative, positive and neutral
+import matplotlib.pyplot as plt
+# Calculate the count of each sentiment label
+sentiment_counts = df['sentiment_label'].value_counts()
+# Create a pie chart
+plt.figure(figsize=(8, 6))
+plt.pie(sentiment_counts, labels=sentiment_counts.index, autopct='%1.1f%%', startangle=90)
+# Add a title
+plt.title('Sentiment Distribution')
+plt.savefig('daily_sentiment_pie.png') # save it
+# Display the chart
+plt.show()
+
+# we can also do a stacked bar chart for daily distribution of each
+  # Group the data by date and sentiment label and calculate the count
+  sentiment_counts2 = df.groupby(['date', 'sentiment_label']).size().unstack()
+
+  # Create a stacked bar chart
+  sentiment_counts2.plot(kind='bar', stacked=True, color=['red', 'grey', 'blue'], figsize=(10, 6)) #change colors of columns
+
+  # Add labels and a title
+  plt.xlabel('Date')
+  plt.ylabel('Count')
+  plt.title('Daily Sentiment Distribution')
+  plt.savefig('daily_sentiment_bar.png') # save it to your folder
+
+  # Display the chart
+  plt.show()
+
+# finally word cloud
+from wordcloud import WordCloud
+from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
+import matplotlib.pyplot as plt
+
+# create negative, positive, neutral label
+df_neg = df.loc[df['sentiment_label'] == "Negative"]
+df_pos = df.loc[df['sentiment_label'] == "Positive"]
+df_neu = df.loc[df['sentiment_label'] == "Neutral"]
+
+# clean the text data and create negative word cloud
+  text = " ".join(i for i in df_neg.clean_text)
+  type(text)
+
+  STOPWORDS.add("https")
+  STOPWORDS.add("t")
+  STOPWORDS.add("co")
+  STOPWORDS.add("RT")
+
+  wordcloud_neg = WordCloud(stopwords = STOPWORDS,
+                      collocations=True,
+                      max_font_size=40,
+                      background_color="skyblue", # custom the background color
+                      colormap="Greys").generate(text) # custom the word color
+
+  #plot the wordcloud object
+  plt.imshow(wordcloud, interpolation='bilInear')
+  plt.axis('off')
+  plt.show()
+  
+# output the chart
+  wordcloud_neg.to_file("wordcloud_neg.png")
+
+  
