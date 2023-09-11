@@ -2,3 +2,59 @@ import nltk
 import pandas as pd
 from nltk.sentiment import SentimentIntensityAnalyzer
 import statistics
+
+# upload data
+df = pd.read_csv(r'/content/Spotify_Data.csv', engine='python') 
+df.info()
+
+# use Regular Expression to remove usernames that start with @
+# find all words starting with @ and remove them from our text column.
+import re
+
+# check the original data
+df['original_text'] = df['text']
+df['original_text'].head()
+
+# use str.replace to replace the word with an empty space
+# remove other dirty words like RT and line breaks (\n\r) in the text exactly the same way
+df['clean_text'] = df['text'].str.replace(r'(\@\w+.*?)', ' ', regex=True)
+df['clean_text'] = df['clean_text'].str.replace(r'RT', ' ', regex=True)
+df['clean_text'] = df['clean_text'].str.replace(r'\n', ' ', regex=True)
+df['clean_text'] = df['clean_text'].str.replace(r'\r', ' ', regex=True)
+df['clean_text'].head()
+#finish clean
+
+# use .sample from pandas to see a random sample() and check the result of cleaning
+random_sample = df['clean_text'].sample(n=10, random_state=34) # set the random state to any number
+random_sample
+
+# remove stopwords and swear words with stopwords
+from nltk.corpus import stopwords
+nltk.download('stopwords')
+
+# Load stopwords
+stopwords = set(stopwords.words('english'))
+
+# Custom list of swearwords
+swearwords = ['set_swear_words']  # Add your own swearwords here
+
+# Function to clean text by removing stopwords and swearwords
+def clean_text(text):
+    # Convert text to lowercase
+    text = text.lower()
+
+    # Remove stopwords
+    words = text.split()
+    words = [word for word in words if word not in stopwords]
+
+    # Remove swearwords
+    words = [word for word in words if word not in swearwords]
+
+    # Join the cleaned words back into a single string
+    cleaned_text = ' '.join(words)
+
+return cleaned_text
+
+# check the result
+random_sample= random_sample.apply(clean_text)
+random_sample.head()
